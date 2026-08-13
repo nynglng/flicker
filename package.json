@@ -6,7 +6,8 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win portable",
-    "dist:installer": "electron-builder --win nsis"
+    "dist:installer": "electron-builder --win nsis",
+    "dist:store": "electron-builder --win appx"
   },
   "author": "nynglng",
   "license": "ISC",
@@ -33,6 +34,15 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "artifactName": "Flicker-Setup-${version}.${ext}"
+    },
+    "appx": {
+      "applicationId": "Flicker",
+      "identityName": "REPLACE-WITH-PARTNER-CENTER-IDENTITY-NAME",
+      "publisher": "CN=REPLACE-WITH-PARTNER-CENTER-PUBLISHER-ID",
+      "publisherDisplayName": "nynglng",
+      "displayName": "Flicker",
+      "backgroundColor": "#0B0C0F",
+      "showNameOnTiles": true
     },
     "copyright": "Copyright © 2026 nynglng",
     "mac": {

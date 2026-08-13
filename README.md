@@ -6,7 +6,7 @@
 
 **Keep. Delete. Move on.**
 
-A local media triage app for Windows — a full-screen, swipe-style way to burn through a
+A local media triage app for Windows - a full-screen, swipe-style way to burn through a
 folder of photos and videos and decide the fate of each one: keep, delete, or move.
 Built with Electron, no cloud, no accounts, nothing leaves your machine.
 
@@ -19,11 +19,11 @@ swipe — whatever's fastest.
 
 ## Features
 
-- **Delete Mode** — left = delete, right = keep. Deleted files move to a `_deleted`
+- **Delete Mode** - left = delete, right = keep. Deleted files move to a `_deleted`
   subfolder inside the source (never permanently gone).
-- **Move Mode** — left = keep, right = move to a chosen destination folder.
-- **Undo** — reverse the last action at any point.
-- **Session summary** — a quick tally of what was kept, moved, and deleted when you end a
+- **Move Mode** - left = keep, right = move to a chosen destination folder.
+- **Undo** - reverse the last action at any point.
+- **Session summary** - a quick tally of what was kept, moved, and deleted when you end a
   session.
 - Handles both images (jpg, png, gif, webp, bmp, svg, avif, heic) and videos (mp4, webm,
   mov, m4v, mkv, avi, ogg), with proper video seeking via range-request streaming.
@@ -41,7 +41,7 @@ npm start
 npm run dist
 ```
 
-Produces a portable, single-file `.exe` in `dist/` — no installer, just run it.
+Produces a portable, single-file `.exe` in `dist/` - no installer, just run it.
 
 ## Tech
 

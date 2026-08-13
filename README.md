@@ -10,6 +10,22 @@ A local media triage app for Windows - a full-screen, swipe-style way to burn th
 folder of photos and videos and decide the fate of each one: keep, delete, or move.
 Built with Electron, no cloud, no accounts, nothing leaves your machine.
 
+<p align="center">
+  <a href="https://github.com/nynglng/flicker/releases/latest">
+    <img src="https://img.shields.io/badge/Download-Windows%20.exe-FFB01F?style=for-the-badge&logo=windows&logoColor=0B0C0F" alt="Download for Windows">
+  </a>
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/hero.png" alt="Flicker reviewing a photo" width="720">
+</p>
+
+## Demo
+
+| Delete Mode | Move Mode |
+|---|---|
+| ![Delete Mode demo](assets/demo/delete-mode.gif) | ![Move Mode demo](assets/demo/move-mode.gif) |
+
 ## Why
 
 Camera rolls and download folders accumulate thousands of near-duplicate photos and
@@ -27,6 +43,20 @@ swipe - whatever's fastest.
   session.
 - Handles both images (jpg, png, gif, webp, bmp, svg, avif, heic) and videos (mp4, webm,
   mov, m4v, mkv, avi, ogg), with proper video seeking via range-request streaming.
+
+<p align="center">
+  <img src="assets/screenshots/delete-mode.png" alt="Delete Mode" width="360">
+  <img src="assets/screenshots/move-mode.png" alt="Move Mode" width="360">
+</p>
+<p align="center">
+  <img src="assets/screenshots/session-summary.png" alt="Session summary overlay" width="360">
+</p>
+
+## Download
+
+Prebuilt Windows executable: [Releases](https://github.com/nynglng/flicker/releases/latest)
+— a single portable `.exe`, no installer. It's unsigned, so Windows SmartScreen may flag
+it on first run; click **More info → Run anyway**.
 
 ## Running from source
 

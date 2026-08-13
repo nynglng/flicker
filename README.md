@@ -63,14 +63,16 @@ Grab the latest build from [Releases](https://github.com/nynglng/flicker/release
 Both are unsigned, so Windows SmartScreen may flag them on first run; click
 **More info → Run anyway**.
 
-## Code signing
+## Releases
 
-Release builds are signed via [SignPath.io](https://signpath.io)'s free open-source
-program. `.github/workflows/build-and-sign.yml` builds the portable exe and installer,
-submits them for signing, then attaches the signed binaries to the GitHub Release for
-any pushed `v*` tag. Requires `SIGNPATH_API_TOKEN` and `SIGNPATH_ORG_ID` repo secrets,
-plus a matching project/signing-policy/artifact-configuration set up in the SignPath
-dashboard.
+`.github/workflows/build-and-sign.yml` builds the portable exe and the installer on any
+pushed `v*` tag and attaches them to the GitHub Release.
+
+Code signing is wired up through [SignPath.io](https://signpath.io) but not yet active —
+its GitHub Actions connector requires a Trusted Build System, which is only available on
+the SignPath Foundation open-source plan (application pending). Once approved, setting the
+repository variable `SIGNPATH_ENABLED` to `true` switches the signing step on and the
+release gets signed binaries instead.
 
 ## Running from source
 

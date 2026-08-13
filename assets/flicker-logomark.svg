@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Flicker">
+  <rect x="109" y="45" width="102" height="166" rx="22" fill="none" stroke="#FFB01F" stroke-width="22"/>
+  <rect x="60" y="62" width="26" height="132" rx="13" fill="#FFB01F" opacity="0.62"/>
+  <rect x="37" y="77" width="13" height="102" rx="6.5" fill="#FFB01F" opacity="0.34"/>
+  <rect x="23" y="91" width="6" height="74" rx="3" fill="#FFB01F" opacity="0.17"/>
+</svg>

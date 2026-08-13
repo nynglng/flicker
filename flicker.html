@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flicker — Media Triage</title>
+<style>
+  :root {
+    --bg: #0B0C0F;
+    --panel: #16181D;
+    --border: #26292F;
+    --text: #E9EAEC;
+    --text-dim: #9A9EA6;
+    --accent-keep: #3BD16F;
+    --accent-delete: #F0483E;
+    --accent-move: #4C8DFF;
+    --accent-neutral: #6E747E;
+    --accent-brand: #FFB01F;
+    --font-body: Archivo, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-utility: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: var(--font-body);
+    overflow: hidden;
+  }
+  #app { display: flex; flex-direction: column; height: 100vh; }
+
+  /* Top bar */
+  #topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  #brandMark { display: flex; align-items: center; margin: 0 8px 0 0; }
+  #brandMark svg { height: 20px; width: auto; display: block; }
+  button.pill {
+    background: #1f232a; color: var(--text); border: 1px solid var(--border);
+    padding: 7px 14px; border-radius: 999px; font-size: 13px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  button.pill:hover { background: #2a2f38; }
+  button.pill:disabled { opacity: 0.4; cursor: default; }
+  button.pill.active { background: var(--accent-brand); border-color: var(--accent-brand); color: var(--bg); }
+
+  #modeToggle { display: flex; gap: 6px; margin-left: auto; }
+  #status { font-family: var(--font-utility); font-size: 12px; color: var(--text-dim); margin-left: 8px; white-space: nowrap; }
+
+  /* Main viewing area */
+  #stage {
+    position: relative; flex: 1; display: flex;
+    align-items: center; justify-content: center;
+    background: #000; overflow: hidden; user-select: none;
+  }
+  #mediaWrap {
+    max-width: 100%; max-height: 100%; display: flex;
+    align-items: center; justify-content: center;
+  }
+  #mediaWrap img, #mediaWrap video {
+    max-width: 100vw; max-height: calc(100vh - 130px);
+    object-fit: contain; display: block;
+  }
+  .hidden { display: none !important; }
+
+  #placeholder {
+    text-align: center; color: var(--text-dim); max-width: 480px; padding: 24px;
+    line-height: 1.5; font-size: 14px;
+  }
+  #placeholder b { color: var(--text); }
+
+  /* Bottom bar */
+  #bottombar {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    padding: 14px 16px; background: var(--panel); border-top: 1px solid var(--border);
+  }
+  .actionBtn {
+    border: none; border-radius: 10px; padding: 12px 22px; font-size: 14px;
+    font-weight: 600; cursor: pointer; color: #fff; min-width: 130px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .actionBtn:active { transform: scale(0.97); }
+  .actionBtn.delete { background: var(--accent-delete); }
+  .actionBtn.keep { background: var(--accent-keep); }
+  .actionBtn.move { background: var(--accent-move); }
+  .actionBtn.neutral { background: var(--accent-neutral); }
+  .actionBtn:disabled { opacity: 0.35; cursor: default; }
+
+  #undoBtn {
+    background: #1f232a; border: 1px solid var(--border); color: var(--text-dim);
+    border-radius: 10px; padding: 12px 16px; font-size: 13px; cursor: pointer;
+  }
+  #undoBtn:disabled { opacity: 0.3; cursor: default; }
+  #undoBtn:not(:disabled):hover { background: #2a2f38; color: var(--text); }
+
+  #progress { font-family: var(--font-utility); font-size: 12px; color: var(--text-dim); min-width: 70px; text-align: center; }
+
+  #endSessionBtn {
+    background: #2a1416; border: 1px solid #4a1f22; color: #f3a6a6;
+    border-radius: 10px; padding: 12px 16px; font-size: 13px; cursor: pointer;
+  }
+  #endSessionBtn:disabled { opacity: 0.3; cursor: default; }
+  #endSessionBtn:not(:disabled):hover { background: #3a1a1d; }
+
+  /* Overlay (summary) */
+  #summaryOverlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center; z-index: 50;
+  }
+  #summaryPanel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    width: min(380px, 90vw); padding: 24px; text-align: center;
+  }
+  #summaryPanel h2 { margin: 0 0 14px; font-size: 17px; }
+  #summaryBody { font-size: 14px; color: var(--text-dim); line-height: 1.9; margin-bottom: 18px; text-align: left; display: inline-block; }
+  #summaryBody b { color: var(--text); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="topbar">
+    <div id="brandMark" title="Flicker">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 439.4 88" role="img" aria-label="Flicker">
+        <g transform="translate(0,0) scale(0.343750)">
+          <rect x="109" y="45" width="102" height="166" rx="22" fill="none" stroke="#FFB01F" stroke-width="22"/>
+          <rect x="60" y="62" width="26" height="132" rx="13" fill="#FFB01F" opacity="0.62"/>
+          <rect x="37" y="77" width="13" height="102" rx="6.5" fill="#FFB01F" opacity="0.34"/>
+          <rect x="23" y="91" width="6" height="74" rx="3" fill="#FFB01F" opacity="0.17"/>
+        </g>
+        <g transform="translate(116.00,25.00) scale(0.380000)"><path d="M13.41102533368258 100.0V-0.17746461028607996H110.07736695403608V19.730103606732868H38.5792012117347V42.343753558901234H102.82674628166V62.25132177592019H38.5792012117347V100.0Z M136.29732270977587 100.0V-0.17746461028607996H161.465498587828V78.72341144884292H225.33927005512027V100.0Z M249.99994661648142 100.0V-0.17746461028607996H275.1681224945336V100.0Z M367.023701570472 101.74927113702624Q346.4443907445791 101.74927113702624 332.614998775738 95.8454810495627Q318.7856068068969 89.94169096209913 311.88675683024326 78.36861568706723Q304.98790685358966 66.79554041203535 304.98790685358966 49.85422740524781Q304.98790685358966 25.041194281842195 320.8898071644953 11.557229267264937Q336.7917074754009 -1.9267357473123212 366.97300502232144 -1.9267357473123212Q384.00939407571065 -1.9267357473123212 396.98949875011385 3.0263739494123527Q409.9696034245171 7.979483646137027 417.24873089581814 17.15999859067511Q424.52785836711917 26.34051353521319 424.52785836711917 39.13680985787172H399.9237683354592Q399.9237683354592 32.29186833773687 395.72173805348035 27.58279249897503Q391.5197077715015 22.87371666021319 384.04097932420734 20.42727456495991Q376.56225087691325 17.980832469706627 366.503995222531 17.980832469706627Q355.34925989089834 17.980832469706627 347.3603273619716 21.618803597052654Q339.37139483304486 25.25677472439868 335.10282199514853 31.96863113269861Q330.8342491572522 38.68048754099854 330.8342491572522 47.95918367346938V51.60349854227405Q330.8342491572522 60.93289122289541 335.10282199514853 67.71763392857142Q339.37139483304486 74.50237663424744 347.36982962827994 78.17203977712737Q355.368264423515 81.8417029200073 366.45961572407987 81.8417029200073Q377.05026520932034 81.8417029200073 384.66526398505835 79.48399312989704Q392.2802627607963 77.12628333978681 396.44109876093296 72.44889951655887Q400.60193476106963 67.77151569333091 400.60193476106963 61.040654752414355H424.6419389463375Q424.6419389463375 73.51371387003462 417.5149278112473 82.67838280680576Q410.3879166761571 91.8430517435769 397.464852291363 96.79616144030157Q384.5417879065689 101.74927113702624 367.023701570472 101.74927113702624Z M454.22735186429486 100.0V-0.17746461028607996H479.395527742347V51.552641843567784L538.2050539244716 -0.17746461028607996H570.6048459422832L523.6661238155978 41.355037411169825L571.5428655418641 100.0H539.7578559185952L505.12115211598035 56.54086899826895L479.395527742347 77.35460464877916V100.0Z M596.3556317476767 100.0V-0.17746461028607996H698.9352657218021V19.730103606732868H621.5554996412627V39.320538134338555H689.9670659279336V58.942878211552475H621.5554996412627V80.09243178298105H700.1014464798196V100.0Z M729.7375559459275 100.0V-0.17746461028607996H810.6858322988794Q821.4539997779247 -0.17746461028607996 828.3908855115708 4.202056973738152Q835.3277712452169 8.581578557762384 838.7756169711189 15.762471457612058Q842.2234626970209 22.943364357461732 842.2234626970209 31.57563946337463Q842.2234626970209 40.72130386752915 837.6633179778609 48.520137686771136Q833.1031732587008 56.31897150601312 823.7040261137938 60.7555333796465L844.6699047922741 100.0H816.3200534119899L798.6499308149599 65.23647475173104H754.9057318239796V100.0ZM754.9057318239796 45.44298711393039H803.1372426202624Q809.3864062784712 45.44298711393039 812.8976093436817 41.75116091358419Q816.4088124088921 38.05933471323797 816.4088124088921 32.17141732530065Q816.4088124088921 28.19754820175838 814.8686978976859 25.399362102541907Q813.3285833864796 22.601176003325435 810.3592764184357 21.16563980502915Q807.3899694503918 19.730103606732868 803.1372426202624 19.730103606732868H754.9057318239796Z" fill="#E9EAEC"/></g>
+      </svg>
+    </div>
+    <button class="pill" id="pickSourceBtn">📁 Select Source Folder</button>
+    <button class="pill" id="pickDestBtn">📤 Select Destination Folder</button>
+    <button class="pill" id="openDeleteFolderBtn" disabled>🗂 Open Delete Folder</button>
+    <div id="modeToggle">
+      <button class="pill active" id="modeDeleteBtn">🗑 Delete Mode</button>
+      <button class="pill" id="modeMoveBtn">➡ Move Mode</button>
+    </div>
+    <div id="status">No folder selected</div>
+  </div>
+
+  <div id="stage">
+    <div id="placeholder">
+      <p><b>1.</b> Click <b>Select Source Folder</b> and pick the folder with your photos/videos.</p>
+      <p><b>2.</b> Choose <b>Delete Mode</b> (left = delete, right = keep) or <b>Move Mode</b> (left = keep, right = move — pick a destination folder first).</p>
+      <p><b>3.</b> Use arrow keys, swipe, or the on-screen zones/buttons to triage each file.</p>
+      <p><b>4.</b> Deleted files go to a <b>_deleted</b> subfolder inside the source (not permanently gone). Use <b>Undo</b> to reverse the last action.</p>
+    </div>
+
+    <div id="mediaWrap" class="hidden">
+      <img id="imgView" class="hidden">
+      <video id="vidView" class="hidden" controls autoplay muted loop playsinline></video>
+    </div>
+  </div>
+
+  <div id="bottombar">
+    <button id="undoBtn" disabled>↶ Undo</button>
+    <button class="actionBtn delete" id="leftBtn" disabled>◀ Delete</button>
+    <div id="progress">0 / 0</div>
+    <button class="actionBtn keep" id="rightBtn" disabled>Keep ▶</button>
+    <button id="endSessionBtn" disabled>⏹ End Session</button>
+  </div>
+
+</div>
+
+<div id="summaryOverlay" class="hidden">
+  <div id="summaryPanel">
+    <h2>Session Ended</h2>
+    <div id="summaryBody"></div>
+    <button id="summaryCloseBtn" class="pill">Close</button>
+  </div>
+</div>
+
+<script>
+let sourceDir = null;   // absolute path string, from server's native folder picker
+let destDir = null;     // absolute path string
+let entries = [];       // [{name, kind}]
+let currentIndex = 0;
+let undoStack = [];     // [{index, action}]
+let mode = 'delete';    // 'delete' or 'move'
+let sessionStats = { deleted: 0, moved: 0, kept: 0 };
+
+const el = id => document.getElementById(id);
+const pickSourceBtn = el('pickSourceBtn');
+const pickDestBtn = el('pickDestBtn');
+const openDeleteFolderBtn = el('openDeleteFolderBtn');
+const modeDeleteBtn = el('modeDeleteBtn');
+const modeMoveBtn = el('modeMoveBtn');
+const statusEl = el('status');
+const placeholder = el('placeholder');
+const mediaWrap = el('mediaWrap');
+const imgView = el('imgView');
+const vidView = el('vidView');
+const leftBtn = el('leftBtn');
+const rightBtn = el('rightBtn');
+const undoBtn = el('undoBtn');
+const progressEl = el('progress');
+const endSessionBtn = el('endSessionBtn');
+const summaryOverlay = el('summaryOverlay');
+const summaryCloseBtn = el('summaryCloseBtn');
+const summaryBody = el('summaryBody');
+
+function baseName(fullPath) {
+  return fullPath.split(/[\\/]/).filter(Boolean).pop() || fullPath;
+}
+
+function updateStatus() {
+  const parts = [];
+  parts.push(sourceDir ? `Source: ${baseName(sourceDir)}` : 'No source folder');
+  if (mode === 'move') parts.push(destDir ? `Dest: ${baseName(destDir)}` : 'No destination folder');
+  statusEl.textContent = parts.join(' · ');
+}
+
+function setMode(newMode) {
+  mode = newMode;
+  modeDeleteBtn.classList.toggle('active', mode === 'delete');
+  modeMoveBtn.classList.toggle('active', mode === 'move');
+
+  if (mode === 'delete') {
+    leftBtn.textContent = '◀ Delete';
+    leftBtn.className = 'actionBtn delete';
+    rightBtn.textContent = 'Keep ▶';
+    rightBtn.className = 'actionBtn keep';
+  } else {
+    leftBtn.textContent = '◀ Keep';
+    leftBtn.className = 'actionBtn neutral';
+    rightBtn.textContent = 'Move ▶';
+    rightBtn.className = 'actionBtn move';
+  }
+  updateStatus();
+}
+
+async function pickFolder(promptText) {
+  const data = await window.flicker.pickFolder(promptText);
+  if (!data.ok) return null;
+  return data.path;
+}
+
+async function pickSource() {
+  const folder = await pickFolder('Select your source folder');
+  if (!folder) return;
+  sourceDir = folder;
+  sessionStats = { deleted: 0, moved: 0, kept: 0 };
+  await scanEntries();
+  updateStatus();
+  openDeleteFolderBtn.disabled = false;
+  endSessionBtn.disabled = false;
+}
+
+async function pickDest() {
+  const folder = await pickFolder('Select your destination folder');
+  if (!folder) return;
+  destDir = folder;
+  updateStatus();
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+async function scanEntries() {
+  try {
+    const data = await window.flicker.listFiles(sourceDir);
+    if (!data.ok) { alert('Could not read that folder: ' + data.error); entries = []; }
+    else entries = shuffle(data.files);
+  } catch (e) {
+    alert('Could not read that folder: ' + e.message);
+    entries = [];
+  }
+  currentIndex = 0;
+  undoStack = [];
+  updateUndoBtn();
+  render();
+}
+
+function render() {
+  imgView.classList.add('hidden');
+  vidView.classList.add('hidden');
+  vidView.pause();
+
+  if (!sourceDir) {
+    placeholder.classList.remove('hidden');
+    mediaWrap.classList.add('hidden');
+    leftBtn.disabled = true; rightBtn.disabled = true;
+    progressEl.textContent = '0 / 0';
+    return;
+  }
+
+  if (currentIndex >= entries.length) {
+    placeholder.classList.remove('hidden');
+    placeholder.innerHTML = `<p style="font-size:16px;color:var(--text)">🎉 All done — no files left to review.</p>`;
+    mediaWrap.classList.add('hidden');
+    leftBtn.disabled = true; rightBtn.disabled = true;
+    progressEl.textContent = `${entries.length} / ${entries.length}`;
+    return;
+  }
+
+  placeholder.classList.add('hidden');
+  mediaWrap.classList.remove('hidden');
+  leftBtn.disabled = false; rightBtn.disabled = false;
+  progressEl.textContent = `${currentIndex + 1} / ${entries.length}`;
+
+  const entry = entries[currentIndex];
+
+  if (entry.kind === 'image') {
+    imgView.src = entry.url;
+    imgView.classList.remove('hidden');
+  } else {
+    vidView.src = entry.url;
+    vidView.classList.remove('hidden');
+    vidView.play().catch(() => {});
+  }
+}
+
+function updateUndoBtn() {
+  undoBtn.disabled = undoStack.length === 0;
+}
+
+async function performAction(action) {
+  if (!sourceDir || currentIndex >= entries.length) return;
+  const entry = entries[currentIndex];
+  try {
+    if (action === 'delete' || action === 'move') {
+      const data = await window.flicker.fileOp({ op: action, sourceDir, destDir, name: entry.name });
+      if (!data.ok) throw new Error(data.error || 'Unknown error');
+    }
+    undoStack.push({ index: currentIndex, action });
+    updateUndoBtn();
+    if (action === 'delete') sessionStats.deleted++;
+    else if (action === 'move') sessionStats.moved++;
+    else sessionStats.kept++;
+    currentIndex++;
+    render();
+  } catch (e) {
+    alert('Action failed: ' + e.message);
+  }
+}
+
+async function undoLast() {
+  if (undoStack.length === 0) return;
+  const last = undoStack.pop();
+  updateUndoBtn();
+  currentIndex = last.index;
+  const entry = entries[currentIndex];
+  try {
+    if (last.action === 'delete' || last.action === 'move') {
+      const op = last.action === 'delete' ? 'undo-delete' : 'undo-move';
+      const data = await window.flicker.fileOp({ op, sourceDir, destDir, name: entry.name });
+      if (!data.ok) throw new Error(data.error || 'Unknown error');
+    }
+    if (last.action === 'delete') sessionStats.deleted--;
+    else if (last.action === 'move') sessionStats.moved--;
+    else sessionStats.kept--;
+    render();
+  } catch (e) {
+    alert('Undo failed: ' + e.message);
+  }
+}
+
+function handleLeft() {
+  if (mode === 'delete') performAction('delete');
+  else performAction('keep');
+}
+function handleRight() {
+  if (mode === 'delete') performAction('keep');
+  else performAction('move');
+}
+
+// Open the real _deleted folder in Finder/Explorer
+async function openDeleteFolderNative() {
+  if (!sourceDir) return;
+  try {
+    const data = await window.flicker.openFolder(sourceDir);
+    if (!data.ok) throw new Error(data.error || 'Unknown error');
+  } catch (e) {
+    alert('Could not open the folder: ' + e.message);
+  }
+}
+
+// End session
+function endSession() {
+  if (!sourceDir) return;
+  const total = sessionStats.deleted + sessionStats.moved + sessionStats.kept;
+  summaryBody.innerHTML = `
+    Files reviewed: <b>${total}</b><br>
+    🗑 Deleted: <b>${sessionStats.deleted}</b><br>
+    ➡ Moved: <b>${sessionStats.moved}</b><br>
+    ✅ Kept: <b>${sessionStats.kept}</b><br>
+    Remaining unreviewed: <b>${entries.length - currentIndex}</b>
+  `;
+  summaryOverlay.classList.remove('hidden');
+
+  sourceDir = null;
+  destDir = null;
+  entries = [];
+  currentIndex = 0;
+  undoStack = [];
+  sessionStats = { deleted: 0, moved: 0, kept: 0 };
+  updateUndoBtn();
+  openDeleteFolderBtn.disabled = true;
+  endSessionBtn.disabled = true;
+  placeholder.innerHTML = `
+    <p><b>1.</b> Click <b>Select Source Folder</b> and pick the folder with your photos/videos.</p>
+    <p><b>2.</b> Choose <b>Delete Mode</b> (left = delete, right = keep) or <b>Move Mode</b> (left = keep, right = move — pick a destination folder first).</p>
+    <p><b>3.</b> Use arrow keys, swipe, or the on-screen zones/buttons to triage each file.</p>
+    <p><b>4.</b> Deleted files go to a <b>_deleted</b> subfolder inside the source (not permanently gone). Use <b>Undo</b> to reverse the last action.</p>
+  `;
+  updateStatus();
+  render();
+}
+
+// Wire up buttons
+pickSourceBtn.addEventListener('click', pickSource);
+pickDestBtn.addEventListener('click', pickDest);
+modeDeleteBtn.addEventListener('click', () => setMode('delete'));
+modeMoveBtn.addEventListener('click', () => setMode('move'));
+leftBtn.addEventListener('click', handleLeft);
+rightBtn.addEventListener('click', handleRight);
+undoBtn.addEventListener('click', undoLast);
+openDeleteFolderBtn.addEventListener('click', openDeleteFolderNative);
+endSessionBtn.addEventListener('click', () => {
+  if (confirm('End the current session? You can start a new one right after.')) endSession();
+});
+summaryCloseBtn.addEventListener('click', () => summaryOverlay.classList.add('hidden'));
+
+// Keyboard
+window.addEventListener('keydown', (e) => {
+  if (!sourceDir) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); handleLeft(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); handleRight(); }
+  else if (e.key === 'Backspace' || e.key.toLowerCase() === 'z') { e.preventDefault(); undoLast(); }
+});
+
+// Touch swipe
+let touchStartX = null;
+el('stage').addEventListener('touchstart', (e) => {
+  touchStartX = e.changedTouches[0].clientX;
+}, { passive: true });
+el('stage').addEventListener('touchend', (e) => {
+  if (touchStartX === null) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 60) {
+    if (dx < 0) handleLeft(); else handleRight();
+  }
+  touchStartX = null;
+}, { passive: true });
+
+setMode('delete');
+</script>
+</body>
+</html>

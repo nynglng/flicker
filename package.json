@@ -1,0 +1,42 @@
+{
+  "name": "flicker",
+  "version": "1.0.0",
+  "description": "Local media triage app — full-screen swipe-style delete/move/keep for photos and videos.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^32.3.3",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.flicker.app",
+    "productName": "Flicker",
+    "files": [
+      "flicker.html",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "build/flicker.ico"
+    },
+    "mac": {
+      "icon": "build/flicker.icns"
+    },
+    "linux": {
+      "icon": "build/icon.png"
+    },
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "allowScripts": {
+    "electron@32.3.3": true
+  }
+}

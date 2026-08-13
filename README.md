@@ -73,10 +73,12 @@ npm start
 ## Building a Windows executable
 
 ```bash
-npm run dist
+npm run dist            # portable .exe
+npm run dist:installer  # NSIS installer (Flicker-Setup-x.x.x.exe)
+npm run dist:store      # MSIX package, for Microsoft Store submission
 ```
 
-Produces a portable, single-file `.exe` in `dist/` - no installer, just run it.
+Output lands in `dist/`.
 
 ## Tech
 
@@ -88,4 +90,4 @@ between them is scoped to four calls exposed through a `contextBridge` preload, 
 
 ## License
 
-ISC
+ISC — see [LICENSE](LICENSE). [Privacy policy](PRIVACY.md).

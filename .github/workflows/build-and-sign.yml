@@ -45,8 +45,8 @@ jobs:
           api-token: "${{ secrets.SIGNPATH_API_TOKEN }}"
           organization-id: "${{ secrets.SIGNPATH_ORG_ID }}"
           project-slug: "flicker"
-          signing-policy-slug: "release-signing"
-          artifact-configuration-slug: "flicker-windows"
+          signing-policy-slug: "test-signing"
+          artifact-configuration-slug: "initial"
           github-artifact-id: "${{ steps.upload-unsigned.outputs.artifact-id }}"
           wait-for-completion: true
           output-artifact-directory: "signed"

@@ -15,7 +15,7 @@ Built with Electron, no cloud, no accounts, nothing leaves your machine.
 Camera rolls and download folders accumulate thousands of near-duplicate photos and
 screenshots. Flicker turns cleanup into a single-file-at-a-time flow: one file fills the
 screen, you make one decision, the next file appears. Arrow keys, on-screen buttons, or a
-swipe — whatever's fastest.
+swipe - whatever's fastest.
 
 ## Features
 

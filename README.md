@@ -65,6 +65,8 @@ Both are unsigned, so Windows SmartScreen may flag them on first run; click
 
 ## Running from source
 
+Requires [Node.js](https://nodejs.org) 20+.
+
 ```bash
 npm install
 npm start

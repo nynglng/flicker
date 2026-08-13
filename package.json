@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win portable"
+    "dist": "electron-builder --win portable",
+    "dist:installer": "electron-builder --win nsis"
   },
   "author": "nynglng",
   "license": "ISC",
@@ -23,8 +24,15 @@
       "package.json"
     ],
     "win": {
-      "target": "portable",
+      "target": ["portable", "nsis"],
       "icon": "build/flicker.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "Flicker-Setup-${version}.${ext}"
     },
     "copyright": "Copyright © 2026 nynglng",
     "mac": {

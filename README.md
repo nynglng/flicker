@@ -54,9 +54,14 @@ swipe - whatever's fastest.
 
 ## Download
 
-Prebuilt Windows executable: [Releases](https://github.com/nynglng/flicker/releases/latest)
-— a single portable `.exe`, no installer. It's unsigned, so Windows SmartScreen may flag
-it on first run; click **More info → Run anyway**.
+Grab the latest build from [Releases](https://github.com/nynglng/flicker/releases/latest):
+
+- **`Flicker-Setup-x.x.x.exe`** — installer, adds Start Menu/Desktop shortcuts and an
+  uninstaller entry.
+- **`Flicker x.x.x.exe`** — portable, no install, just run it.
+
+Both are unsigned, so Windows SmartScreen may flag them on first run; click
+**More info → Run anyway**.
 
 ## Running from source
 

@@ -1,0 +1,58 @@
+name: Build and sign
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Build portable + installer (unsigned)
+        run: npx electron-builder --win portable nsis --publish never
+
+      - name: Zip unsigned artifacts for SignPath
+        run: |
+          mkdir unsigned
+          copy "dist\Flicker*.exe" unsigned\
+          Compress-Archive -Path unsigned\* -DestinationPath unsigned.zip
+        shell: pwsh
+
+      - name: Upload unsigned artifact
+        id: upload-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned
+          path: unsigned.zip
+
+      # Requires repo secrets SIGNPATH_API_TOKEN and SIGNPATH_ORG_ID, and a
+      # SignPath project/signing-policy/artifact-configuration created in the
+      # SignPath dashboard first — see README "Code signing" section.
+      - name: Submit signing request
+        uses: signpath/github-action-submit-signing-request@v1
+        id: sign
+        with:
+          api-token: "${{ secrets.SIGNPATH_API_TOKEN }}"
+          organization-id: "${{ secrets.SIGNPATH_ORG_ID }}"
+          project-slug: "flicker"
+          signing-policy-slug: "release-signing"
+          artifact-configuration-slug: "flicker-windows"
+          github-artifact-id: "${{ steps.upload-unsigned.outputs.artifact-id }}"
+          wait-for-completion: true
+          output-artifact-directory: "signed"
+
+      - name: Upload signed artifacts to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: signed/*.exe

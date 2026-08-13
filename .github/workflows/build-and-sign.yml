@@ -11,7 +11,6 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write   # create the release / upload assets
-      actions: read     # let SignPath read the run and fetch the artifact
     steps:
       - uses: actions/checkout@v4
 
@@ -31,31 +30,26 @@ jobs:
           Compress-Archive -Path unsigned\* -DestinationPath unsigned.zip
         shell: pwsh
 
-      - name: Upload unsigned artifact
-        id: upload-unsigned
-        uses: actions/upload-artifact@v4
-        with:
-          name: unsigned
-          path: unsigned.zip
-
-      # Signing goes through SignPath's GitHub Actions connector, which needs a
-      # Trusted Build System. That is not part of the free trial subscription —
-      # the connector answers every request with a 503 until the account is
-      # entitled. Once the SignPath Foundation open-source plan is approved,
-      # set the repository variable SIGNPATH_ENABLED to "true" to switch this on.
-      - name: Submit signing request
+      # Uses the SignPath PowerShell module, which calls the plain REST API
+      # directly (same one the web dashboard uses) rather than the GitHub
+      # Actions connector — the connector needs a Trusted Build System, which
+      # is not part of the free trial and returns a 503 for every request.
+      - name: Sign artifact
         if: vars.SIGNPATH_ENABLED == 'true'
-        uses: signpath/github-action-submit-signing-request@v2
-        id: sign
-        with:
-          api-token: "${{ secrets.SIGNPATH_API_TOKEN }}"
-          organization-id: "${{ secrets.SIGNPATH_ORG_ID }}"
-          project-slug: "flicker"
-          signing-policy-slug: "test-signing"
-          artifact-configuration-slug: "initial"
-          github-artifact-id: "${{ steps.upload-unsigned.outputs.artifact-id }}"
-          wait-for-completion: true
-          output-artifact-directory: "signed"
+        shell: pwsh
+        run: |
+          Install-Module -Name SignPath -Force -Scope CurrentUser
+          Import-Module SignPath
+          Submit-SigningRequest `
+            -InputArtifactPath "unsigned.zip" `
+            -ApiToken "${{ secrets.SIGNPATH_API_TOKEN }}" `
+            -OrganizationId "${{ secrets.SIGNPATH_ORG_ID }}" `
+            -ProjectSlug "flicker" `
+            -SigningPolicySlug "test-signing" `
+            -ArtifactConfigurationSlug "initial" `
+            -OutputArtifactPath "signed.zip" `
+            -WaitForCompletion
+          Expand-Archive -Path signed.zip -DestinationPath signed
 
       - name: Publish signed binaries to the release
         if: startsWith(github.ref, 'refs/tags/') && vars.SIGNPATH_ENABLED == 'true'
